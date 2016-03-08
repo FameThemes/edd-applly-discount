@@ -16,7 +16,7 @@ function edd_aad_add_discount_settings( $discount_id = null, $discount =  null )
         </th>
         <td>
             <input type="checkbox" id="edd-auto-apply" name="auto_apply" value="1"<?php checked( true, $is_auto ); ?>/>
-            <span class="description"><?php _e( 'Limit this discount to a single-use per customer?', 'easy-digital-downloads' ); ?></span>
+            <span class="description"><?php _e( 'Auto apply this discount for checkout', 'easy-digital-downloads' ); ?></span>
         </td>
     </tr>
 <?php
