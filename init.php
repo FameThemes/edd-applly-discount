@@ -6,7 +6,7 @@
  * Version: 		1.0.0
  * Author:			FameThemes
  * Author URI: 		http://www.famethemes.com/
- * Text Domain: 	edd-sale-price
+ * Text Domain: 	edd-auto-apply-discount
  */
 
 if ( is_admin() ) {
