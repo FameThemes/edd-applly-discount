@@ -139,7 +139,7 @@ if ( is_admin() ) {
 
             }
         }
-
+        wp_reset_postdata();
         return '<del class="price-del">'.edd_currency_filter( edd_format_amount( $price ) ).'</del><span class="price-sep">-</span><ins class="price-ins">'.edd_currency_filter( edd_format_amount( $discount_price ) ).'</ins>' . $label;
     }
     add_filter( 'edd_cart_item_price_label', 'aad_edd_cart_price', 35, 4  );
@@ -163,7 +163,7 @@ if ( is_admin() ) {
                 'suppress_filters' => true
             );
             $posts_array = get_posts( $args );
-            wp_reset_query();
+            wp_reset_postdata();
             $edd_aad_discount_codes =  $posts_array;
         }
         return $edd_aad_discount_codes;
@@ -363,6 +363,7 @@ if ( is_admin() ) {
             </ul>
         </div><!--end .edd_price_options-->
         <?php
+        wp_reset_postdata();
         do_action( 'edd_after_price_options', $download_id );
     }
     remove_action( 'edd_purchase_link_top', 'edd_purchase_variable_pricing', 10, 2 );
