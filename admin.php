@@ -9,6 +9,7 @@ add_action( 'edd_edit_discount_form_before_use_once', 'edd_aad_add_discount_sett
 
 function edd_aad_add_discount_settings( $discount_id = null, $discount =  null ){
     $is_auto  =  ( $discount_id ) ?  get_post_meta( $discount_id, '_edd_discount_auto_apply', true ) : 0 ;
+    $title    =  ( $discount_id ) ?    get_post_meta( $discount_id, '_edd_discount_auto_apply_title', true ) : '' ;
     ?>
     <tr>
         <th scope="row" valign="top">
@@ -17,6 +18,15 @@ function edd_aad_add_discount_settings( $discount_id = null, $discount =  null )
         <td>
             <input type="checkbox" id="edd-auto-apply" name="auto_apply" value="1"<?php checked( true, $is_auto ); ?>/>
             <span class="description"><?php _e( 'Auto apply this discount for checkout', 'easy-digital-downloads' ); ?></span>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row" valign="top">
+            <label for="edd-auto_apply_title"><?php _e( 'Custom title after Price', 'easy-digital-downloads' ); ?></label>
+        </th>
+        <td>
+            <textarea rows="4" style="width: 100%;" id="edd-auto_apply_title" name="auto_apply_title"><?php echo esc_textarea( $title ); ?></textarea>
+            <span class="description"><?php _e( 'Only apply if "Auto apply" is checked.', 'easy-digital-downloads' ); ?></span>
         </td>
     </tr>
 <?php
@@ -30,6 +40,12 @@ function edd_aad_add_discount_meta( $meta , $discount_id =  null ){
     if ( isset ( $_REQUEST['auto_apply'] ) ) {
         if ( $_REQUEST['auto_apply'] == 1 ) {
             $is_auto_apply = 1;
+        }
+    }
+
+    if ( isset ( $_REQUEST['auto_apply_title'] ) ) {
+        if ( trim( $_REQUEST['auto_apply_title'] ) != ''  ) {
+            $meta['auto_apply_title'] = $_REQUEST['auto_apply_title'];
         }
     }
     $meta['auto_apply'] = $is_auto_apply;

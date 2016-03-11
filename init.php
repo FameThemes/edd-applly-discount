@@ -12,6 +12,132 @@
 if ( is_admin() ) {
     require_once dirname( __FILE__ ).'/admin.php';
 } else {
+    require_once dirname( __FILE__ ).'/helper.php';
+    global $edd_aad_discount_codes,
+           $aad_applied_download;
+           $aad_applied_discount_download;
+
+    $aad_get_discount_code =  false;
+    $aad_applied_download = array();
+    $aad_applied_discount_download = array();
+
+
+    function aad_maybe_apply_discount_code( $download_id, $price_id = null  ){
+        global $aad_applied_download, $aad_applied_discount_download ;
+        if ( ! isset( $aad_applied_download[$download_id] ) ) {
+            $codes = edd_aad_get_discount_codes();
+            if ( is_array( $codes ) ) {
+                foreach ($codes as $discount) {
+                    if (
+                        edd_is_discount_active($discount->ID) &&
+                        edd_is_discount_started($discount->ID) &&
+                        edd_discount_is_min_met($discount->ID) &&
+                        aad_edd_discount_product_reqs_met($discount->ID, $download_id)
+                    ) {
+                        $type = edd_get_discount_type($discount->ID);
+                        $amount = edd_get_discount_amount($discount->ID);
+                        $price = aad_get_edd_price($download_id, $download_id);
+                        if ($type == 'flat') {
+                            $price = $price - $amount;
+                        } else {
+                            $price = $price - $price * ($amount / 100);
+                        }
+                        edd_unset_error( 'edd-discount-error' );
+
+                        // Get best coupon discount
+                        if  ( $price_id ) {
+                            if ( ! isset( $aad_applied_download[$download_id] ) ) {
+                                $aad_applied_download[$download_id] = array();
+                            }
+                            $_p = isset( $aad_applied_download[$download_id][$price_id] ) ? $aad_applied_download[$download_id][$price_id] : 0;
+                            $aad_applied_download[$download_id][$price_id] = ( $price > $_p ) ? $price : $_p;
+                        } else {
+                            $_p = isset( $aad_applied_download[$download_id] ) ? $aad_applied_download[$download_id] : 0;
+                            $aad_applied_download[$download_id] = ( $price > $_p ) ? $price : $_p;
+                        }
+                        $aad_applied_discount_download[ $download_id ] = $discount->ID;
+                        return $price;
+                    }
+                }
+            }
+        } else {
+            edd_unset_error( 'edd-discount-error' );
+            if ( ! isset( $aad_applied_download[$download_id] ) ) {
+                return false;
+            } else if ( ! is_array( $aad_applied_download[$download_id] ) ) {
+                return $aad_applied_download[$download_id];
+            } else {
+                return current( $aad_applied_download[$download_id] );
+            }
+        }
+    }
+
+    /**
+     * @see edd_price
+     */
+    function aad_edd_price( $formatted_price, $download_id, $price, $price_id ){
+        $discount_price = aad_maybe_apply_discount_code( $download_id , $price_id );
+        if ( $discount_price ) {
+            $price =  aad_get_edd_price( $download_id , $price_id );
+            $discount_price = apply_filters( 'edd_download_price', edd_sanitize_amount( $discount_price ) );
+            $price = apply_filters( 'edd_download_price', edd_sanitize_amount( $price ) );
+
+            // _edd_discount_auto_apply_title
+            global $aad_applied_discount_download;
+            $custom_title = '';
+            if ( isset( $aad_applied_discount_download[ $download_id ] ) ){
+                $custom_title = get_post_meta( $aad_applied_discount_download[ $download_id ], '_edd_discount_auto_apply_title', true );
+            }
+
+            $formatted_price = '<span class="edd_price" id="edd_price_' . $download_id . '"><del class="price-del">' . $price . '</del><span class="price-sep">-</span><ins class="price-ins">'.$discount_price.'</ins>'.wp_kses_post( $custom_title ).'</span>';
+            return $formatted_price;
+        }
+        return $formatted_price;
+    }
+    add_filter( 'edd_download_price_after_html', 'aad_edd_price', 35, 4 );
+
+
+    function aad_edd_cart_price( $price_label, $item_id = 0, $options = array( ) ) {
+        $price_id = isset( $options['price_id'] ) ? $options['price_id'] : false;
+        $discount_price = aad_maybe_apply_discount_code( $item_id, $price_id );
+        if ( ! $discount_price ) {
+            return $price_label;
+        }
+
+        $price = edd_get_cart_item_price( $item_id, $options );
+        $label = '';
+
+        if ( ! edd_is_free_download( $item_id, $price_id ) && ! edd_download_is_tax_exclusive( $item_id ) ) {
+
+            if( edd_prices_show_tax_on_checkout() && ! edd_prices_include_tax() ) {
+
+                $price += edd_get_cart_item_tax( $item_id, $options, $price );
+
+            } if( ! edd_prices_show_tax_on_checkout() && edd_prices_include_tax() ) {
+
+                $price -= edd_get_cart_item_tax( $item_id, $options, $price );
+
+            }
+
+            if( edd_display_tax_rate() ) {
+
+                $label = '&nbsp;&ndash;&nbsp;';
+
+                if( edd_prices_show_tax_on_checkout() ) {
+                    $label .= sprintf( __( 'includes %s tax', 'easy-digital-downloads' ), edd_get_formatted_tax_rate() );
+                } else {
+                    $label .= sprintf( __( 'excludes %s tax', 'easy-digital-downloads' ), edd_get_formatted_tax_rate() );
+                }
+
+                $label = apply_filters( 'edd_cart_item_tax_description', $label, $item_id, $options );
+
+            }
+        }
+
+        return '<del class="price-del">'.edd_currency_filter( edd_format_amount( $price ) ).'</del><span class="price-sep">-</span><ins class="price-ins">'.edd_currency_filter( edd_format_amount( $discount_price ) ).'</ins>' . $label;
+    }
+    add_filter( 'edd_cart_item_price_label', 'aad_edd_cart_price', 35, 4  );
+
 
 
     /**
@@ -20,24 +146,23 @@ if ( is_admin() ) {
      * @return array
      */
     function edd_aad_get_discount_codes(){
-        $args = array(
-            'posts_per_page'   => -1,
-            'meta_key'         => '_edd_discount_auto_apply',
-            'meta_value'       => '1',
-            'post_type'        => 'edd_discount',
-            'post_status'      => 'active',
-            'suppress_filters' => true
-        );
-        $posts_array = get_posts( $args );
-        wp_reset_query();
-        return $posts_array;
+        global $edd_aad_discount_codes;
+        if ( empty( $edd_aad_discount_codes ) ) {
+            $args = array(
+                'posts_per_page'   => -1,
+                'meta_key'         => '_edd_discount_auto_apply',
+                'meta_value'       => '1',
+                'post_type'        => 'edd_discount',
+                'post_status'      => 'active',
+                'suppress_filters' => true
+            );
+            $posts_array = get_posts( $args );
+            wp_reset_query();
+            $edd_aad_discount_codes =  $posts_array;
+        }
+        return $edd_aad_discount_codes;
     }
 
-
-    //  do_action( 'edd_post_add_to_cart', $download_id, $options );
-    /**
-    * @see edd_ajax_apply_discount
-    */
 
 
     /**
@@ -53,7 +178,10 @@ if ( is_admin() ) {
         if ( is_string( $_codes ) ) {
             $codes = explode( '|', $_codes );
         }
-        $codes = array_filter( $codes );
+        if ( is_array( $codes ) ) {
+            $codes = array_filter( $codes );
+        }
+
         if ( ! empty( $codes ) ) {
             return $codes;
         } else {
@@ -103,6 +231,10 @@ if ( is_admin() ) {
                     <span class="edd-description"><?php _e( 'Enter a coupon code if you have one.', 'easy-digital-downloads' ); ?></span>
                     <input class="edd-input" type="text" id="edd-discount" name="edd-discount" value="<?php echo esc_attr( $code ); ?>" placeholder="<?php  esc_attr_e( 'Enter discount', 'easy-digital-downloads' ); ?>"/>
                     <input type="submit" class="edd-apply-discount edd-submit button <?php echo $color . ' ' . $style; ?>" value="<?php echo _x( 'Apply', 'Apply discount at checkout', 'easy-digital-downloads' ); ?>"/>
+                    <?php if ( $code ) { ?>
+                    <span class="edd-discount-info"></i> You have already selected the best coupon - <?php echo esc_html( $code ); ?>!</span>
+                    <?php } ?>
+
                     <span id="edd-discount-error-wrap" class="edd_error edd-alert edd-alert-error" style="display:none;"></span>
                 </p>
             </fieldset>
@@ -143,7 +275,7 @@ if ( is_admin() ) {
         $is_multiple_discounts_allowed =  edd_multiple_discounts_allowed();
         $set = false;
 
-        foreach (  $codes as $discount ) {
+        foreach ( $codes as $discount ) {
             $discount_code = edd_get_discount_code( $discount->ID );
             if ( edd_is_discount_valid( $discount_code, $user ) ) {
                 $discounts = edd_set_cart_discount( $discount_code );
@@ -154,7 +286,6 @@ if ( is_admin() ) {
                 }
             }
         }
-
         edd_unset_error( 'edd-discount-error' );
 
         return $set;
@@ -163,7 +294,7 @@ if ( is_admin() ) {
     /**
      * Auto add discount code if vaild
      */
-    function edd_aad_init(){
+    function edd_aad_add_checkout_discount(){
         if ( is_singular() ) {
             $purchase_page = edd_get_option( 'purchase_page', false );
             if ( $purchase_page  && is_page( $purchase_page ) ) {
@@ -176,7 +307,7 @@ if ( is_admin() ) {
         }
 
     }
-    add_action('wp', 'edd_aad_init');
+    add_action('wp', 'edd_aad_add_checkout_discount');
 
 
 
