@@ -93,9 +93,12 @@ if ( is_admin() ) {
             $custom_title = '';
             if ( isset( $aad_applied_discount_download[ $download_id ] ) ){
                 $custom_title = get_post_meta( $aad_applied_discount_download[ $download_id ], '_edd_discount_auto_apply_title', true );
+                if ( $custom_title != '' ) {
+                    $custom_title  ='<span class="price-custom-title">'.wp_kses_post( $custom_title ).'</span>';
+                }
             }
 
-            $formatted_price = '<span class="edd_price" id="edd_price_' . $download_id . '"><del class="price-del">' . $price . '</del><span class="price-sep">-</span><ins class="price-ins">'.$discount_price.'</ins>'.wp_kses_post( $custom_title ).'</span>';
+            $formatted_price = '<span class="edd_price" id="edd_price_' . $download_id . '"><del class="price-del">' . $price . '</del><span class="price-sep">-</span><ins class="price-ins">'.$discount_price.'</ins>'.$custom_title.'</span>';
             return $formatted_price;
         }
         return $formatted_price;
