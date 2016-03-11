@@ -85,34 +85,3 @@ function aad_get_edd_price( $download_id = 0, $price_id = false ) {
 }
 
 
-
-/**
- * Get Cart Item Price
- *
- * @since 1.0
- *
- * @param int   $item_id Download (cart item) ID number
- * @param array $options Optional parameters, used for defining variable prices
- * @return string Fully formatted price
- */
-function aad_cart_item_price( $item_id = 0, $options = array() ) {
-    $price = edd_get_cart_item_price( $item_id, $options );
-
-    $price_id = isset( $options['price_id'] ) ? $options['price_id'] : false;
-
-    if ( ! edd_is_free_download( $item_id, $price_id ) && ! edd_download_is_tax_exclusive( $item_id ) ) {
-
-        if( edd_prices_show_tax_on_checkout() && ! edd_prices_include_tax() ) {
-
-            $price += edd_get_cart_item_tax( $item_id, $options, $price );
-
-        } if( ! edd_prices_show_tax_on_checkout() && edd_prices_include_tax() ) {
-
-            $price -= edd_get_cart_item_tax( $item_id, $options, $price );
-
-        }
-
-    }
-
-    return $price;
-}
