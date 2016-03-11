@@ -24,7 +24,12 @@ if ( is_admin() ) {
 
     function aad_maybe_apply_discount_code( $download_id, $price_id = null  ){
         global $aad_applied_download, $aad_applied_discount_download ;
-        if ( ! isset( $aad_applied_download[$download_id] ) ) {
+        if ( $price_id ) {
+            $check =  isset( $aad_applied_download[$download_id] ) && isset( $aad_applied_download[$download_id][ $price_id ] ) ?  false : true;
+        } else {
+            $check =  isset( $aad_applied_download[$download_id] ) ?  false : true;
+        }
+        if (  $check ) {
             $codes = edd_aad_get_discount_codes();
             if ( is_array( $codes ) ) {
                 foreach ($codes as $discount) {
@@ -36,7 +41,7 @@ if ( is_admin() ) {
                     ) {
                         $type = edd_get_discount_type($discount->ID);
                         $amount = edd_get_discount_amount($discount->ID);
-                        $price = aad_get_edd_price($download_id, $download_id);
+                        $price = aad_get_edd_price($download_id, $price_id);
                         if ($type == 'flat') {
                             $price = $price - $amount;
                         } else {
@@ -290,6 +295,81 @@ if ( is_admin() ) {
 
         return $set;
     }
+
+
+    /**
+     * Variable price output
+     *
+     * Outputs variable pricing options for each download or a specified downloads in a list.
+     * The output generated can be overridden by the filters provided or by removing
+     * the action and adding your own custom action.
+     *
+     * @since 1.2.3
+     * @param int $download_id Download ID
+     * @return void
+     */
+    function aad_edd_purchase_variable_pricing( $download_id = 0, $args = array() ) {
+        $variable_pricing = edd_has_variable_prices( $download_id );
+
+        if ( ! $variable_pricing ) {
+            return;
+        }
+
+        $prices = apply_filters( 'edd_purchase_variable_prices', edd_get_variable_prices( $download_id ), $download_id );
+
+        // If the price_id passed is found in the variable prices, do not display all variable prices.
+        if ( false !== $args['price_id'] && isset( $prices[ $args['price_id'] ] ) ) {
+            return;
+        }
+
+        $type   = edd_single_price_option_mode( $download_id ) ? 'checkbox' : 'radio';
+        $mode   = edd_single_price_option_mode( $download_id ) ? 'multi' : 'single';
+        $schema = edd_add_schema_microdata() ? ' itemprop="offers" itemscope itemtype="http://schema.org/Offer"' : '';
+
+        if ( edd_item_in_cart( $download_id ) && ! edd_single_price_option_mode( $download_id ) ) {
+            return;
+        }
+
+        do_action( 'edd_before_price_options', $download_id );
+        // maybe- can apply discount
+        ?>
+        <div class="edd_price_options edd_<?php echo esc_attr( $mode ); ?>_mode">
+            <ul>
+                <?php
+                if ( $prices ) :
+                    $checked_key = isset( $_GET['price_option'] ) ? absint( $_GET['price_option'] ) : edd_get_default_variable_price( $download_id );
+                    foreach ( $prices as $key => $price ) :
+
+                        $discount_price = aad_maybe_apply_discount_code( $download_id, $key );
+
+                        echo '<li id="edd_price_option_' . $download_id . '_' . sanitize_key( $price['name'] ) . '"' . $schema . '>';
+                        echo '<label for="'	. esc_attr( 'edd_price_option_' . $download_id . '_' . $key ) . '">';
+                        echo '<input type="' . $type . '" ' . checked( apply_filters( 'edd_price_option_checked', $checked_key, $download_id, $key ), $key, false ) . ' name="edd_options[price_id][]" id="' . esc_attr( 'edd_price_option_' . $download_id . '_' . $key ) . '" class="' . esc_attr( 'edd_price_option_' . $download_id ) . '" value="' . esc_attr( $key ) . '" data-price="' . edd_get_price_option_amount( $download_id, $key ) .'"/>&nbsp;';
+                        echo '<span class="edd_price_option_name" itemprop="description">' . esc_html( $price['name'] ) . '</span><span class="edd_price_option_sep">&nbsp;&ndash;&nbsp;</span>';
+                        if ( $discount_price ) {
+                            echo '<span class="edd_price_option_price" itemprop="price" xmlns="http://www.w3.org/1999/html"><del class="price-del">'.edd_currency_filter( edd_format_amount( $price['amount'])).'</del><span class="price-sep">-</span><ins class="price-ins">'.edd_currency_filter( $discount_price ).'</ins></span>';
+                        } else {
+                            echo '<span class="edd_price_option_price" itemprop="price">' . edd_currency_filter( edd_format_amount( $price['amount'] ) ) . '</span>';
+                        }
+
+                        echo '</label>';
+                        do_action( 'edd_after_price_option', $key, $price, $download_id );
+                        echo '</li>';
+                    endforeach;
+                endif;
+                do_action( 'edd_after_price_options_list', $download_id, $prices, $type );
+                ?>
+            </ul>
+        </div><!--end .edd_price_options-->
+        <?php
+        do_action( 'edd_after_price_options', $download_id );
+    }
+    remove_action( 'edd_purchase_link_top', 'edd_purchase_variable_pricing', 10, 2 );
+    add_action( 'edd_purchase_link_top', 'aad_edd_purchase_variable_pricing', 35, 2 );
+
+
+
+
 
     /**
      * Auto add discount code if vaild
