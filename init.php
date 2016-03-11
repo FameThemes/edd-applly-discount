@@ -75,6 +75,7 @@ if ( is_admin() ) {
                 return current( $aad_applied_download[$download_id] );
             }
         }
+        return false;
     }
 
     /**
