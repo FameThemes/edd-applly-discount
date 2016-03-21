@@ -24,57 +24,53 @@ if ( is_admin() ) {
 
     function aad_maybe_apply_discount_code( $download_id, $price_id = null  ){
         global $aad_applied_download, $aad_applied_discount_download ;
-        if ( $price_id ) {
-            $check =  isset( $aad_applied_download[$download_id] ) && isset( $aad_applied_download[$download_id][ $price_id ] ) ?  false : true;
-        } else {
-            $check =  isset( $aad_applied_download[$download_id] ) ?  false : true;
-        }
-        if (  $check ) {
-            $codes = edd_aad_get_discount_codes();
-            if ( is_array( $codes ) ) {
-                foreach ($codes as $discount) {
-                    if (
-                        edd_is_discount_active($discount->ID) &&
-                        edd_is_discount_started($discount->ID) &&
-                        edd_discount_is_min_met($discount->ID) &&
-                        aad_edd_discount_product_reqs_met($discount->ID, $download_id)
-                    ) {
-                        $type = edd_get_discount_type($discount->ID);
-                        $amount = edd_get_discount_amount($discount->ID);
-                        $price = aad_get_edd_price($download_id, $price_id);
-                        if ($type == 'flat') {
-                            $price = $price - $amount;
-                        } else {
-                            $price = $price - $price * ($amount / 100);
-                        }
-                        edd_unset_error( 'edd-discount-error' );
 
-                        // Get best coupon discount
-                        if  ( $price_id ) {
-                            if ( ! isset( $aad_applied_download[$download_id] ) ) {
-                                $aad_applied_download[$download_id] = array();
-                            }
-                            $_p = isset( $aad_applied_download[$download_id][$price_id] ) ? $aad_applied_download[$download_id][$price_id] : 0;
-                            $aad_applied_download[$download_id][$price_id] = ( $price > $_p ) ? $price : $_p;
-                        } else {
-                            $_p = isset( $aad_applied_download[$download_id] ) ? $aad_applied_download[$download_id] : 0;
-                            $aad_applied_download[$download_id] = ( $price > $_p ) ? $price : $_p;
-                        }
-                        $aad_applied_discount_download[ $download_id ] = $discount->ID;
-                        return $price;
+        if ( $price_id ) {
+            $_price =  isset( $aad_applied_download[$download_id] ) && isset( $aad_applied_download[$download_id][ $price_id ] ) ?  $aad_applied_download[$download_id][ $price_id ] : false;
+        } else {
+            $_price =  isset( $aad_applied_download[$download_id] ) ?  $aad_applied_download[$download_id] : false;
+        }
+
+        if ( $_price ) {
+            return $_price;
+        }
+
+        $codes = edd_aad_get_discount_codes();
+        if ( is_array( $codes ) ) {
+            foreach ($codes as $discount) {
+                if (
+                    edd_is_discount_active($discount->ID) &&
+                    edd_is_discount_started($discount->ID) &&
+                    edd_discount_is_min_met($discount->ID) &&
+                    aad_edd_discount_product_reqs_met($discount->ID, $download_id)
+                ) {
+                    $type = edd_get_discount_type($discount->ID);
+                    $amount = edd_get_discount_amount($discount->ID);
+                    $price = aad_get_edd_price($download_id, $price_id);
+                    if ($type == 'flat') {
+                        $price = $price - $amount;
+                    } else {
+                        $price = $price - $price * ($amount / 100);
                     }
+                    edd_unset_error( 'edd-discount-error' );
+
+                    // Get best coupon discount
+                    if  ( $price_id ) {
+                        if ( ! isset( $aad_applied_download[$download_id] ) ) {
+                            $aad_applied_download[$download_id] = array();
+                        }
+                        $_p = isset( $aad_applied_download[$download_id][$price_id] ) ? $aad_applied_download[$download_id][$price_id] : 0;
+                        $aad_applied_download[$download_id][$price_id] = ( $price > $_p ) ? $price : $_p;
+                    } else {
+                        $_p = isset( $aad_applied_download[$download_id] ) ? $aad_applied_download[$download_id] : 0;
+                        $aad_applied_download[$download_id] = ( $price > $_p ) ? $price : $_p;
+                    }
+                    $aad_applied_discount_download[ $download_id ] = $discount->ID;
+                    return $price;
                 }
             }
-        } else {
-            edd_unset_error( 'edd-discount-error' );
-            if ( ! isset( $aad_applied_download[$download_id] ) ) {
-                return false;
-            } else if ( ! is_array( $aad_applied_download[$download_id] ) ) {
-                return $aad_applied_download[$download_id];
-            } else {
-                return current( $aad_applied_download[$download_id] );
-            }
         }
+
         return false;
     }
 
