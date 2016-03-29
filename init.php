@@ -145,8 +145,12 @@ if ( is_admin() ) {
 
             }
         }
-
         wp_reset_postdata();
+
+        if ( $price <= $discount_price ) {
+            return $price_label;
+        }
+
         return '<del class="price-del">'.edd_currency_filter( edd_format_amount( $price ) ).'</del><span class="price-sep">-</span><ins class="price-ins">'.edd_currency_filter( edd_format_amount( $discount_price ) ).'</ins>' . $label;
     }
     add_filter( 'edd_cart_item_price_label', 'aad_edd_cart_price', 65, 4  );
@@ -395,6 +399,6 @@ if ( is_admin() ) {
 
     }
     add_action('wp', 'edd_aad_add_checkout_discount');
-    
+
 
 } // end if not is admin pages
