@@ -23,6 +23,7 @@ if ( is_admin() ) {
 
 
     function aad_maybe_apply_discount_code( $download_id, $price_id = ''  ){
+
         global $aad_applied_download, $aad_applied_discount_download ;
         $_price = false;
         if ( isset( $aad_applied_download[$download_id] ) ) {
@@ -108,6 +109,11 @@ if ( is_admin() ) {
 
 
     function aad_edd_cart_price( $price_label, $item_id = 0, $options = array( ) ) {
+        // Don't apply for renewal
+        if( EDD()->session->get( 'edd_is_renewal' ) ) {
+            return $price_label;
+        }
+
         $price_id = isset( $options['price_id'] ) ? $options['price_id'] : false;
         $discount_price = aad_maybe_apply_discount_code( $item_id, $price_id );
 
@@ -191,6 +197,7 @@ if ( is_admin() ) {
      * @return bool
      */
     function edd_aad_get_active_discounts() {
+
         $_codes = EDD()->session->get( 'cart_discounts' );
         $codes = array();
         if ( is_string( $_codes ) ) {
@@ -293,17 +300,27 @@ if ( is_admin() ) {
         $is_multiple_discounts_allowed =  edd_multiple_discounts_allowed();
         $set = false;
 
-        foreach ( $codes as $discount ) {
-            $discount_code = edd_get_discount_code( $discount->ID );
-            if ( edd_is_discount_valid( $discount_code, $user ) ) {
-                $discounts = edd_set_cart_discount( $discount_code );
-                $set = true;
-                if ( ! $is_multiple_discounts_allowed ) {
-                    edd_unset_error( 'edd-discount-error' );
-                    return true;
+        if( EDD()->session->get( 'edd_is_renewal' ) ) {
+            foreach ( $codes as $discount ) {
+                $discount_code = edd_get_discount_code( $discount->ID );
+                edd_unset_cart_discount( $discount_code );
+            }
+        } else {
+            foreach ( $codes as $discount ) {
+                $discount_code = edd_get_discount_code( $discount->ID );
+                if ( edd_is_discount_valid( $discount_code, $user ) ) {
+                    $discounts = edd_set_cart_discount( $discount_code );
+                    $set = true;
+                    if ( ! $is_multiple_discounts_allowed ) {
+                        edd_unset_error( 'edd-discount-error' );
+                        return true;
+                    }
                 }
             }
         }
+
+
+
         edd_unset_error( 'edd-discount-error' );
 
         return $set;
@@ -387,6 +404,7 @@ if ( is_admin() ) {
      */
     function edd_aad_add_checkout_discount(){
         if ( is_singular() ) {
+
             $purchase_page = edd_get_option( 'purchase_page', false );
             if ( $purchase_page  && is_page( $purchase_page ) ) {
                 $codes =  edd_aad_get_active_discounts();
