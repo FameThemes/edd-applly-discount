@@ -109,6 +109,9 @@ if ( is_admin() ) {
 
 
     function aad_edd_cart_price( $price_label, $item_id = 0, $options = array( ) ) {
+
+        return $price_label;
+
         if ( ! is_edd_auto_apply_discount_code() ) {
             return $price_label;
         }
@@ -155,9 +158,11 @@ if ( is_admin() ) {
             return $price_label;
         }
 
+       // return '<del class="price-del">'.edd_currency_filter( edd_format_amount( $price ) ).'</del><span class="price-sep">-</span><ins class="price-ins">'.edd_currency_filter( edd_format_amount( $discount_price ) ).'</ins>' . $label;
         return '<del class="price-del">'.edd_currency_filter( edd_format_amount( $price ) ).'</del><span class="price-sep">-</span><ins class="price-ins">'.edd_currency_filter( edd_format_amount( $discount_price ) ).'</ins>' . $label;
+
     }
-    add_filter( 'edd_cart_item_price_label', 'aad_edd_cart_price', 65, 4  );
+    //add_filter( 'edd_cart_item_price_label', 'aad_edd_cart_price', 65, 4  );
 
 
 
@@ -247,9 +252,6 @@ if ( is_admin() ) {
                 <p id="edd_show_discount" style="<?php echo $code ? 'display:none' : ''; ?>;">
                     <?php _e( 'Have a discount code?', 'easy-digital-downloads' ); ?> <a href="#" class="edd_discount_link"><?php echo _x( 'Click to enter it', 'Entering a discount code', 'easy-digital-downloads' ); ?></a>
                 </p>
-                <p id="toggle-discount-code">
-                    <?php _e( 'Have a discount code?', 'easy-digital-downloads' ); ?> <a href="#" class="edd_discount_toggle_link"><?php echo _x( 'Click to enter it', 'Entering a discount code', 'easy-digital-downloads' ); ?></a>
-                </p>
                 <p id="edd-discount-code-wrap" class="edd-cart-adjustment">
                     <label class="edd-label" for="edd-discount">
                         <?php _e( 'Discount', 'easy-digital-downloads' ); ?>
@@ -269,8 +271,8 @@ if ( is_admin() ) {
         endif;
     }
     remove_action( 'edd_checkout_form_top', 'edd_discount_field', -1 );
-    //add_action( 'edd_after_checkout_cart', 'edd_aad_discount_field', -1 );
-    add_action( 'edd_after_checkout_cart', 'edd_discount_field', -1 );
+    add_action( 'edd_after_checkout_cart', 'edd_aad_discount_field', -1 );
+    //add_action( 'edd_after_checkout_cart', 'edd_discount_field', -1 );
 
 
 
