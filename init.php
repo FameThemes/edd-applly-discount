@@ -115,7 +115,7 @@ if ( is_admin() ) {
 
         $price_id = isset( $options['price_id'] ) ? $options['price_id'] : false;
         $discount_price = aad_maybe_apply_discount_code( $item_id, $price_id );
-        
+
         if ( ! $discount_price ) {
             return $price_label;
         }
@@ -217,6 +217,7 @@ if ( is_admin() ) {
      * Renders the Discount Code field which allows users to enter a discount code.
      * This field is only displayed if there are any active discounts on the site else
      * it's not displayed.
+     * @see edd_discount_field
      *
      * @since 1.2.2
      * @return void
@@ -246,6 +247,9 @@ if ( is_admin() ) {
                 <p id="edd_show_discount" style="<?php echo $code ? 'display:none' : ''; ?>;">
                     <?php _e( 'Have a discount code?', 'easy-digital-downloads' ); ?> <a href="#" class="edd_discount_link"><?php echo _x( 'Click to enter it', 'Entering a discount code', 'easy-digital-downloads' ); ?></a>
                 </p>
+                <p id="toggle-discount-code">
+                    <?php _e( 'Have a discount code?', 'easy-digital-downloads' ); ?> <a href="#" class="edd_discount_toggle_link"><?php echo _x( 'Click to enter it', 'Entering a discount code', 'easy-digital-downloads' ); ?></a>
+                </p>
                 <p id="edd-discount-code-wrap" class="edd-cart-adjustment">
                     <label class="edd-label" for="edd-discount">
                         <?php _e( 'Discount', 'easy-digital-downloads' ); ?>
@@ -265,7 +269,8 @@ if ( is_admin() ) {
         endif;
     }
     remove_action( 'edd_checkout_form_top', 'edd_discount_field', -1 );
-    add_action( 'edd_checkout_form_top', 'edd_aad_discount_field', -1 );
+    //add_action( 'edd_after_checkout_cart', 'edd_aad_discount_field', -1 );
+    add_action( 'edd_after_checkout_cart', 'edd_discount_field', -1 );
 
 
 
