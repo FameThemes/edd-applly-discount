@@ -109,15 +109,13 @@ if ( is_admin() ) {
 
 
     function aad_edd_cart_price( $price_label, $item_id = 0, $options = array( ) ) {
-        // Don't apply for renewal
-        if( EDD()->session->get( 'edd_is_renewal' ) ) {
+        if ( ! is_edd_auto_apply_discount_code() ) {
             return $price_label;
         }
 
         $price_id = isset( $options['price_id'] ) ? $options['price_id'] : false;
         $discount_price = aad_maybe_apply_discount_code( $item_id, $price_id );
-
-        //return $price_label;
+        
         if ( ! $discount_price ) {
             return $price_label;
         }
@@ -280,6 +278,12 @@ if ( is_admin() ) {
      */
     function edd_aad_auto_apply_discount( ){
 
+
+        $active_codes =  edd_aad_get_active_discounts();
+        if ( ! $active_codes  ) {
+
+        }
+
         $codes = edd_aad_get_discount_codes();
 
         $customer = EDD()->session->get( 'customer' );
@@ -300,9 +304,10 @@ if ( is_admin() ) {
         $is_multiple_discounts_allowed =  edd_multiple_discounts_allowed();
         $set = false;
 
-        if( EDD()->session->get( 'edd_is_renewal' ) ) {
+        if ( ! is_edd_auto_apply_discount_code() ){
             foreach ( $codes as $discount ) {
                 $discount_code = edd_get_discount_code( $discount->ID );
+                var_dump( $discount_code );
                 edd_unset_cart_discount( $discount_code );
             }
         } else {
@@ -319,10 +324,7 @@ if ( is_admin() ) {
             }
         }
 
-
-
         edd_unset_error( 'edd-discount-error' );
-
         return $set;
     }
 
@@ -339,6 +341,7 @@ if ( is_admin() ) {
      * @return void
      */
     function aad_edd_purchase_variable_pricing( $download_id = 0, $args = array() ) {
+
         $variable_pricing = edd_has_variable_prices( $download_id );
 
         if ( ! $variable_pricing ) {
@@ -361,7 +364,6 @@ if ( is_admin() ) {
         }
 
         do_action( 'edd_before_price_options', $download_id );
-        // maybe- can apply discount
         ?>
         <div class="edd_price_options edd_<?php echo esc_attr( $mode ); ?>_mode">
             <ul>
@@ -399,19 +401,30 @@ if ( is_admin() ) {
     add_action( 'edd_purchase_link_top', 'aad_edd_purchase_variable_pricing', 35, 2 );
 
 
+    function is_edd_auto_apply_discount_code(){
+        if (  EDD()->session->get( 'edd_is_renewal' ) ) {
+            return false;
+        }
+
+        $cart =  EDD()->session->get( 'edd_cart' );
+        foreach ( ( array ) $cart as $item ) {
+            if ( isset( $item['options']['is_upgrade'] ) && $item['options']['is_upgrade'] ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
     /**
      * Auto add discount code if vaild
      */
     function edd_aad_add_checkout_discount(){
         if ( is_singular() ) {
-
             $purchase_page = edd_get_option( 'purchase_page', false );
             if ( $purchase_page  && is_page( $purchase_page ) ) {
-                $codes =  edd_aad_get_active_discounts();
-                if ( ! $codes  ) {
-                    edd_aad_auto_apply_discount();
-                }
-
+                edd_aad_auto_apply_discount();
             }
         }
 
