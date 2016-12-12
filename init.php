@@ -110,8 +110,6 @@ if ( is_admin() ) {
 
     function aad_edd_cart_price( $price_label, $item_id = 0, $options = array( ) ) {
 
-        return $price_label;
-
         if ( ! is_edd_auto_apply_discount_code() ) {
             return $price_label;
         }
@@ -165,7 +163,6 @@ if ( is_admin() ) {
     //add_filter( 'edd_cart_item_price_label', 'aad_edd_cart_price', 65, 4  );
 
 
-
     /**
      * Get all auto apply discount codes
      *
@@ -217,6 +214,22 @@ if ( is_admin() ) {
         }
     }
 
+    function edd_add_get_auto_apply_codes(){
+        if ( ! isset( $GLOBALS['edd_add_get_auto_apply_codes'] ) ) {
+            $GLOBALS['edd_add_get_auto_apply_codes'] = array();
+            $auto_apply_codes = edd_aad_get_discount_codes();
+            foreach ( $auto_apply_codes as $discount ) {
+                $discount_code = edd_get_discount_code( $discount->ID );
+                $GLOBALS['edd_add_get_auto_apply_codes'][ $discount_code ] = array(
+                    'id' => $discount->ID,
+                    'code' => $discount_code
+                );
+            }
+        }
+
+        return $GLOBALS['edd_add_get_auto_apply_codes'];
+    }
+
 
     /**
      * Renders the Discount Code field which allows users to enter a discount code.
@@ -245,6 +258,7 @@ if ( is_admin() ) {
 
             $codes =  edd_aad_get_active_discounts();
             $code = ( $codes ) ? esc_attr( $codes[0] ) : '';
+            $auto_apply_codes = edd_add_get_auto_apply_codes();
             ?>
             <fieldset id="edd_discount_code">
                 <?php if ( $code ) { ?>
@@ -260,7 +274,7 @@ if ( is_admin() ) {
                     <span class="edd-description"><?php _e( 'Enter a coupon code if you have one.', 'easy-digital-downloads' ); ?></span>
                     <input class="edd-input" type="text" id="edd-discount" name="edd-discount" value="<?php echo esc_attr( $code ); ?>" placeholder="<?php  esc_attr_e( 'Enter discount', 'easy-digital-downloads' ); ?>"/>
                     <input type="submit" class="edd-apply-discount edd-submit button <?php echo $color . ' ' . $style; ?>" value="<?php echo _x( 'Apply', 'Apply discount at checkout', 'easy-digital-downloads' ); ?>"/>
-                    <?php if ( $code ) { ?>
+                    <?php if ( $code && ( ! empty( $auto_apply_codes ) && isset( $auto_apply_codes[ $code ] ) ) ) { ?>
                     <span class="edd-discount-info"></i> You have already selected the best coupon - <?php echo esc_html( $code ); ?>!</span>
                     <?php } ?>
 
@@ -291,7 +305,7 @@ if ( is_admin() ) {
 
         }
 
-        $codes = edd_aad_get_discount_codes();
+        $codes = edd_add_get_auto_apply_codes();
 
         $customer = EDD()->session->get( 'customer' );
         $customer = wp_parse_args( $customer, array( 'first_name' => '', 'last_name' => '', 'email' => '' ) );
@@ -312,14 +326,11 @@ if ( is_admin() ) {
         $set = false;
 
         if ( ! is_edd_auto_apply_discount_code() ){
-            foreach ( $codes as $discount ) {
-                $discount_code = edd_get_discount_code( $discount->ID );
-                var_dump( $discount_code );
+            foreach ( $codes as $discount_code => $discount ) {
                 edd_unset_cart_discount( $discount_code );
             }
         } else {
-            foreach ( $codes as $discount ) {
-                $discount_code = edd_get_discount_code( $discount->ID );
+            foreach ( $codes as $discount_code => $discount ) {
                 if ( edd_is_discount_valid( $discount_code, $user ) ) {
                     $discounts = edd_set_cart_discount( $discount_code );
                     $set = true;
@@ -431,7 +442,10 @@ if ( is_admin() ) {
         if ( is_singular() ) {
             $purchase_page = edd_get_option( 'purchase_page', false );
             if ( $purchase_page  && is_page( $purchase_page ) ) {
-                edd_aad_auto_apply_discount();
+                $codes =  edd_aad_get_active_discounts();
+                if ( ! $codes  ) {
+                    edd_aad_auto_apply_discount();
+                }
             }
         }
 
