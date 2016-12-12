@@ -275,7 +275,7 @@ if ( is_admin() ) {
                     <input class="edd-input" type="text" id="edd-discount" name="edd-discount" value="<?php echo esc_attr( $code ); ?>" placeholder="<?php  esc_attr_e( 'Enter discount', 'easy-digital-downloads' ); ?>"/>
                     <input type="submit" class="edd-apply-discount edd-submit button <?php echo $color . ' ' . $style; ?>" value="<?php echo _x( 'Apply', 'Apply discount at checkout', 'easy-digital-downloads' ); ?>"/>
                     <?php if ( $code && ( ! empty( $auto_apply_codes ) && isset( $auto_apply_codes[ $code ] ) ) ) { ?>
-                    <span class="edd-discount-info"></i> You have already selected the best coupon - <?php echo esc_html( $code ); ?>!</span>
+                    <span class="edd-discount-info"></i> You have already selected the best coupon - <span class="a__code"><?php echo esc_html( $code ); ?></span>!</span>
                     <?php } ?>
 
                     <span id="edd-discount-error-wrap" class="edd_error edd-alert edd-alert-error" style="display:none;"></span>
